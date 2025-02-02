@@ -1,3 +1,6 @@
+#here the pdf images with bounding boxes with column 1 and in column 2 has rendered input from json-mmd format and the sidebar is present where i can make any changes in the boxes of the annotations and the changes
+#will reflect in the mmd-json 
+
 import streamlit as st
 import os
 import json
