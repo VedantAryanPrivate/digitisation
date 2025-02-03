@@ -1,4 +1,6 @@
-#here i have put moveup and move down for boxes /delete the boxes/
+#here the pdf images with bounding boxes with column 1 and in column 2 has rendered input from json-mmd format and the sidebar is present where i can make any changes in the boxes of the annotations and the changes
+#will reflect in the mmd-json also the sliders work
+
 import streamlit as st
 import os
 import json
@@ -40,15 +42,38 @@ with st.sidebar:
         elif not image_dir_path.exists() or not image_dir_path.is_dir():
             st.error("🚨 Image Directory does not exist or is not a directory.")
         else:
+            # Get list of available JSON files
             json_files = sorted([f for f in os.listdir(json_dir) if f.endswith(".json")])
-            
+
             if not json_files:
                 st.error("⚠️ No JSON files found in the specified directory.")
             else:
+                # Store JSON files in session state
                 if 'json_files' not in st.session_state:
                     st.session_state.json_files = json_files
                     st.session_state.current_json_idx = 0
-                
+
+                # Navigation Controls
+                st.subheader("📑 Navigation Controls")
+                col_nav_prev, col_nav_next = st.columns(2)
+
+                with col_nav_prev:
+                    if st.button("⏮️ Previous"):
+                        if st.session_state.current_json_idx > 0:
+                            st.session_state.current_json_idx -= 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the first file.")
+
+                with col_nav_next:
+                    if st.button("⏭️ Next"):
+                        if st.session_state.current_json_idx < len(st.session_state.json_files) - 1:
+                            st.session_state.current_json_idx += 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the last file.")
+
+                # Dropdown to select a specific JSON file
                 selected_json = st.selectbox(
                     "📜 Select JSON File",
                     options=st.session_state.json_files,
@@ -92,7 +117,10 @@ with col1:
             with open(json_path, "r") as f:
                 json_data = json.load(f)
 
-            first_entry = json_data if isinstance(json_data, dict) else json_data[0]
+            if isinstance(json_data, dict):
+                json_data = [json_data]
+
+            first_entry = json_data[0] if json_data else None
 
             if first_entry and 'lines' in first_entry:
                 image = cv2.imread(image_path)
@@ -119,62 +147,68 @@ with col1:
 
                     return img_copy
 
+                # Draw bounding boxes
                 image = draw_boxes(image, first_entry['lines'])
+
+                # Display the image
                 st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
     else:
         st.error("⚠️ No matching image found for the selected JSON file.")
+import streamlit as st
+import os
+import json
+import cv2
+import numpy as np
+from PIL import Image
+import subprocess
+from pathlib import Path
 
-# ----------------------------------------------
-# SIDEBAR: Manage Bounding Boxes
-# ----------------------------------------------
+# ---------------- Sidebar: Manage Bounding Boxes ----------------
 with st.sidebar:
     st.subheader("📦 Manage Annotations")
-    
     if first_entry and "lines" in first_entry:
-        for idx in range(len(first_entry["lines"])):
-            annotation = first_entry["lines"][idx]  # Get current annotation
+        for idx, annotation in enumerate(first_entry["lines"]):
             with st.expander(f"Box {idx}", expanded=False):
                 points = np.array(annotation["cnt"], dtype=np.int32)
                 x, y, w, h = cv2.boundingRect(points)
-
-                new_x = st.number_input(f"X {idx}", value=x, key=f"x_{idx}")
-                new_y = st.number_input(f"Y {idx}", value=y, key=f"y_{idx}")
-                new_w = st.number_input(f"Width {idx}", value=w, key=f"w_{idx}")
-                new_h = st.number_input(f"Height {idx}", value=h, key=f"h_{idx}")
-                new_text = st.text_area(f"Text {idx}", annotation["text"], key=f"text_{idx}")
-
-                col_up, col_down, col_delete = st.columns(3)  # ✅ Added col_delete
-
-                # Move Up
+                
+                # Sliders for adjusting bounding box properties
+                new_x = st.slider(f"X Pos {idx}", 0, json_width, x, key=f"x_{idx}")
+                new_y = st.slider(f"Y Pos {idx}", 0, json_height, y, key=f"y_{idx}")
+                new_w = st.slider(f"Width {idx}", 1, json_width - new_x, w, key=f"w_{idx}")
+                new_h = st.slider(f"Height {idx}", 1, json_height - new_y, h, key=f"h_{idx}")
+                new_text = st.text_area(f"Text {idx}", value=annotation["text"], key=f"text_{idx}")
+                
+                # Update bounding box when sliders change
+                if (new_x != x or new_y != y or new_w != w or new_h != h or new_text != annotation["text"]):
+                    annotation["cnt"] = [[new_x, new_y], [new_x, new_y + new_h], [new_x + new_w, new_y + new_h], [new_x + new_w, new_y]]
+                    annotation["text"] = new_text
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, indent=4)
+                    st.experimental_rerun()
+                
+                col_up, col_down, col_delete = st.columns(3)
+                
                 with col_up:
                     if st.button(f"⬆️ Move Up {idx}", key=f"up_{idx}") and idx > 0:
-                        first_entry['lines'][idx - 1], first_entry['lines'][idx] = (
-                            first_entry['lines'][idx],
-                            first_entry['lines'][idx - 1],
-                        )
+                        first_entry['lines'][idx - 1], first_entry['lines'][idx] = first_entry['lines'][idx], first_entry['lines'][idx - 1]
                         with open(json_path, "w", encoding="utf-8") as f:
                             json.dump(json_data, f, indent=4)
                         st.experimental_rerun()
-
-                # Move Down
+                
                 with col_down:
                     if st.button(f"⬇️ Move Down {idx}", key=f"down_{idx}") and idx < len(first_entry['lines']) - 1:
-                        first_entry['lines'][idx + 1], first_entry['lines'][idx] = (
-                            first_entry['lines'][idx],
-                            first_entry['lines'][idx + 1],
-                        )
+                        first_entry['lines'][idx + 1], first_entry['lines'][idx] = first_entry['lines'][idx], first_entry['lines'][idx + 1]
                         with open(json_path, "w", encoding="utf-8") as f:
                             json.dump(json_data, f, indent=4)
                         st.experimental_rerun()
-
-                # ✅ Delete Box
+                
                 with col_delete:
                     if st.button(f"🗑️ Delete {idx}", key=f"delete_{idx}"):
-                        del first_entry["lines"][idx]  # Remove the annotation from JSON
+                        del first_entry["lines"][idx]
                         with open(json_path, "w", encoding="utf-8") as f:
-                            json.dump(json_data, f, indent=4)  # Save updated JSON
-                        st.experimental_rerun()  # Refresh UI
-
+                            json.dump(json_data, f, indent=4)
+                        st.experimental_rerun()
 
 # ----------------------------------------------
 # COLUMN 2: Rendered JSON as HTML
