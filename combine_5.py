@@ -1,10 +1,10 @@
+import subprocess
 import streamlit as st
 import os
 import json
 import cv2
 import numpy as np
 from PIL import Image
-import subprocess
 from pathlib import Path
 from streamlit_drawable_canvas import st_canvas
 
@@ -15,76 +15,50 @@ st.title("📄 PDF Image Annotation Viewer & JSON Renderer")
 # Constants for reference page dimensions
 PAGE_WIDTH = 2068
 PAGE_HEIGHT = 2924
-MAX_DISPLAY_HEIGHT = 800  # Limit to prevent UI cutoff
 
 # ------------------- Sidebar Inputs -------------------
 with st.sidebar:
     st.header("⚙️ Configuration")
 
-    # Input for JSON directory
-    json_dir = st.text_input(
-        "📂 JSON Directory",
-        value="/Users/simrannaik/Desktop/automated/json",
-        help="Enter the directory path containing JSON annotation files."
-    )
-
-    # Input for Image directory
-    image_dir = st.text_input(
-        "🖼 Image Directory",
-        value="/Users/simrannaik/Desktop/automated/images",
-        help="Enter the directory path containing image files."
-    )
-
-    # Checkbox for showing URLs
+    json_dir = st.text_input("📂 JSON Directory", value="/Users/simrannaik/Desktop/automated/json")
+    image_dir = st.text_input("🖼 Image Directory", value="/Users/simrannaik/Desktop/automated/images")
+    
     require_url = st.checkbox("Require URL for Bounding Box", value=False)
 
-    # Validate directories
     if json_dir and image_dir:
         json_dir_path = Path(json_dir)
         image_dir_path = Path(image_dir)
 
         if not json_dir_path.exists() or not json_dir_path.is_dir():
-            st.error("🚨 JSON Directory does not exist or is not a directory.")
+            st.error("🚨 JSON Directory does not exist.")
         elif not image_dir_path.exists() or not image_dir_path.is_dir():
-            st.error("🚨 Image Directory does not exist or is not a directory.")
+            st.error("🚨 Image Directory does not exist.")
         else:
-            # Get list of available JSON files
             json_files = sorted([f for f in os.listdir(json_dir) if f.endswith(".json")])
 
             if not json_files:
-                st.error("⚠️ No JSON files found in the specified directory.")
+                st.error("⚠️ No JSON files found.")
             else:
-                # Store JSON files in session state
                 if 'json_files' not in st.session_state:
                     st.session_state.json_files = json_files
                     st.session_state.current_json_idx = 0
 
-                # Navigation Controls
                 st.subheader("📑 Navigation Controls")
                 col_nav_prev, col_nav_next = st.columns(2)
 
                 with col_nav_prev:
-                    if st.button("⏮️ Previous"):
-                        if st.session_state.current_json_idx > 0:
-                            st.session_state.current_json_idx -= 1
-                            st.experimental_rerun()
-                        else:
-                            st.warning("🚨 This is the first file.")
+                    if st.button("⏮️ Previous") and st.session_state.current_json_idx > 0:
+                        st.session_state.current_json_idx -= 1
+                        st.session_state.canvas_data = None  # Reset canvas when switching pages
+                        st.experimental_rerun()
 
                 with col_nav_next:
-                    if st.button("⏭️ Next"):
-                        if st.session_state.current_json_idx < len(st.session_state.json_files) - 1:
-                            st.session_state.current_json_idx += 1
-                            st.experimental_rerun()
-                        else:
-                            st.warning("🚨 This is the last file.")
+                    if st.button("⏭️ Next") and st.session_state.current_json_idx < len(st.session_state.json_files) - 1:
+                        st.session_state.current_json_idx += 1
+                        st.session_state.canvas_data = None  # Reset canvas when switching pages
+                        st.experimental_rerun()
 
-                # Dropdown to select a specific JSON file
-                selected_json = st.selectbox(
-                    "📜 Select JSON File",
-                    options=st.session_state.json_files,
-                    index=st.session_state.current_json_idx,
-                )
+                selected_json = st.selectbox("📜 Select JSON File", options=st.session_state.json_files, index=st.session_state.current_json_idx)
                 st.session_state.current_json_idx = st.session_state.json_files.index(selected_json)
 
 # Ensure valid directory inputs before proceeding
@@ -95,28 +69,17 @@ if not json_dir or not image_dir:
 # Extract page number from filename
 def extract_page_number(filename):
     parts = filename.split("_page_")
-    if len(parts) > 1 and parts[1].split(".")[0].isdigit():
-        return int(parts[1].split(".")[0])
-    return None
+    return int(parts[1].split(".")[0]) if len(parts) > 1 and parts[1].split(".")[0].isdigit() else None
 
 # Get available images
 image_files = sorted([f for f in os.listdir(image_dir) if f.endswith(".png")])
 
-# Automatically select the corresponding image based on JSON
+# Automatically select corresponding image based on JSON
 image_page = extract_page_number(selected_json)
 matching_image = next((img for img in image_files if extract_page_number(img) == image_page), None)
 
 # Create two-column layout
 col1, col2 = st.columns(2)
-
-# ----------------------------------------------
-# SIDEBAR: Additional Controls
-# ----------------------------------------------
-with st.sidebar:
-    st.subheader("🖼 Image Display Options")
-    
-    # Checkbox to toggle bounding boxes
-    show_raw_image = st.checkbox("Show Image Without Bounding Boxes", value=False)
 
 # ----------------------------------------------
 # COLUMN 1: Image with Bounding Boxes
@@ -162,49 +125,52 @@ with col1:
 
                     return img_copy
 
-                if show_raw_image:
-                    st.image(Image.fromarray(image), caption=f"📌 Raw {matching_image}", use_column_width=True)
-                else:
-                    image = draw_boxes(image, first_entry['lines'])
-                    st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
+                image = draw_boxes(image, first_entry['lines'])
+                st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
 
-                # Extract image ID from JSON (assuming image_id is available in the JSON)
-                image_id = first_entry["image_id"] if "image_id" in first_entry else "unknown_image_id"
+        # Canvas for drawing bounding boxes
+        st.subheader("🎨 Draw Bounding Box")
+        
+        # Reset canvas when switching pages
+        if 'canvas_data' not in st.session_state or st.session_state.current_json_idx != st.session_state.get('previous_json_idx', -1):
+            st.session_state.canvas_data = None  # Reset stored canvas data
 
-                # Canvas for drawing bounding boxes
-                st.subheader("🎨 Draw Bounding Box")
-                canvas_result = st_canvas(
-                    fill_color="rgba(0, 0, 0, 0)",  # Transparent background
-                    stroke_width=2,
-                    stroke_color="#FF0000",  # Red stroke for bounding box
-                    background_image=Image.open(image_path),  # Use selected image as background
-                    update_streamlit=True,
-                    height=500,  # Height of canvas
-                    width=700,  # Width of canvas
-                    drawing_mode="rect",  # Rectangle mode for bounding boxes
-                    key="canvas",
-                )
+        canvas_result = st_canvas(
+            fill_color="rgba(0, 0, 0, 0)",
+            stroke_width=2,
+            stroke_color="#FF0000",
+            background_image=Image.open(image_path),
+            update_streamlit=True,
+            height=500,
+            width=700,
+            drawing_mode="rect",
+            key=f"canvas_{st.session_state.current_json_idx}",
+        )
 
-                # Extract drawn bounding box coordinates and scale to page dimensions
-                if canvas_result.json_data is not None:
-                    objects = canvas_result.json_data["objects"]
-                    if objects:
-                        img_width = 700  # Canvas width
-                        img_height = 500  # Canvas height
-                        for obj in objects:
-                            left, top, width, height = obj["left"], obj["top"], obj["width"], obj["height"]
-                            
-                            # Convert coordinates relative to page width and height
-                            scaled_x = int((left / img_width) * json_width)
-                            scaled_y = int((top / img_height) * json_height)
-                            scaled_w = int((width / img_width) * json_width)
-                            scaled_h = int((height / img_height) * json_height)
+        # Store previous JSON index
+        st.session_state.previous_json_idx = st.session_state.current_json_idx
 
-                            # Format the URL based on the extracted image_id
-                            url = f"https://cdn.mathpix.com/cropped/{image_id}.jpg?height={scaled_h}&width={scaled_w}&top_left_y={scaled_y}&top_left_x={scaled_x}"
-                            
-                            # Display the URL without rendering the image
-                            st.write(f"Bounding Box URL: {url}")
+        # Extract drawn bounding box coordinates and scale to page dimensions
+        if canvas_result.json_data is not None:
+            objects = canvas_result.json_data["objects"]
+            if objects:
+                img_width = 700
+                img_height = 500
+                for obj in objects:
+                    left, top, width, height = obj["left"], obj["top"], obj["width"], obj["height"]
+                    
+                    scaled_x = int((left / img_width) * json_width)
+                    scaled_y = int((top / img_height) * json_height)
+                    scaled_w = int((width / img_width) * json_width)
+                    scaled_h = int((height / img_height) * json_height)
+
+                    # Format the URL based on the extracted image_id
+                    image_id = first_entry.get("image_id", "unknown_image_id")
+                    url = f"https://cdn.mathpix.com/cropped/{image_id}.jpg?height={scaled_h}&width={scaled_w}&top_left_y={scaled_y}&top_left_x={scaled_x}"
+                    
+                    st.write(f"Bounding Box URL: {url}")
+
+
 
 # ----------------------------------------------
 # SIDEBAR: Manage Bounding Boxes
