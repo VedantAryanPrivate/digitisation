@@ -34,10 +34,10 @@ with st.sidebar:
         value="/Users/simrannaik/Desktop/automated/images",
         help="Enter the directory path containing image files."
     )
-    
+
     # Checkbox for showing URLs
     require_url = st.checkbox("Require URL for Bounding Box", value=False)
-    
+
     # Validate directories
     if json_dir and image_dir:
         json_dir_path = Path(json_dir)
@@ -58,6 +58,26 @@ with st.sidebar:
                 if 'json_files' not in st.session_state:
                     st.session_state.json_files = json_files
                     st.session_state.current_json_idx = 0
+
+                # Navigation Controls
+                st.subheader("📑 Navigation Controls")
+                col_nav_prev, col_nav_next = st.columns(2)
+
+                with col_nav_prev:
+                    if st.button("⏮️ Previous"):
+                        if st.session_state.current_json_idx > 0:
+                            st.session_state.current_json_idx -= 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the first file.")
+
+                with col_nav_next:
+                    if st.button("⏭️ Next"):
+                        if st.session_state.current_json_idx < len(st.session_state.json_files) - 1:
+                            st.session_state.current_json_idx += 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the last file.")
 
                 # Dropdown to select a specific JSON file
                 selected_json = st.selectbox(
