@@ -231,6 +231,29 @@ with st.sidebar:
                     with open(json_path, "w", encoding="utf-8") as f:
                         json.dump(json_data, f, indent=4)
                     st.experimental_rerun()
+                
+                col_up, col_down, col_delete = st.columns(3)
+                
+                with col_up:
+                    if st.button(f"⬆️ Move Up {idx}", key=f"up_{idx}") and idx > 0:
+                        first_entry['lines'][idx - 1], first_entry['lines'][idx] = first_entry['lines'][idx], first_entry['lines'][idx - 1]
+                        with open(json_path, "w", encoding="utf-8") as f:
+                            json.dump(json_data, f, indent=4)
+                        st.experimental_rerun()
+                
+                with col_down:
+                    if st.button(f"⬇️ Move Down {idx}", key=f"down_{idx}") and idx < len(first_entry['lines']) - 1:
+                        first_entry['lines'][idx + 1], first_entry['lines'][idx] = first_entry['lines'][idx], first_entry['lines'][idx + 1]
+                        with open(json_path, "w", encoding="utf-8") as f:
+                            json.dump(json_data, f, indent=4)
+                        st.experimental_rerun()
+                
+                with col_delete:
+                    if st.button(f"🗑️ Delete {idx}", key=f"delete_{idx}"):
+                        del first_entry["lines"][idx]
+                        with open(json_path, "w", encoding="utf-8") as f:
+                            json.dump(json_data, f, indent=4)
+                        st.experimental_rerun()
 
 # ----------------------------------------------
 # COLUMN 2: Rendered JSON as HTML
