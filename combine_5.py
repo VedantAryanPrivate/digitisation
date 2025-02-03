@@ -80,6 +80,14 @@ matching_image = next((img for img in image_files if extract_page_number(img) ==
 
 # Create two-column layout
 col1, col2 = st.columns(2)
+# ----------------------------------------------
+# SIDEBAR: Additional Controls
+# ----------------------------------------------
+with st.sidebar:
+    st.subheader("🖼 Image Display Options")
+    
+    # Checkbox to toggle bounding boxes
+    show_raw_image = st.checkbox("Show Image Without Bounding Boxes", value=False)
 
 # ----------------------------------------------
 # COLUMN 1: Image with Bounding Boxes
@@ -125,12 +133,15 @@ with col1:
 
                     return img_copy
 
-                image = draw_boxes(image, first_entry['lines'])
-                st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
+                if show_raw_image:
+                    st.image(Image.fromarray(image), caption=f"📌 Raw {matching_image}", use_column_width=True)
+                else:
+                    image = draw_boxes(image, first_entry['lines'])
+                    st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
 
         # Canvas for drawing bounding boxes
         st.subheader("🎨 Draw Bounding Box")
-        
+
         # Reset canvas when switching pages
         if 'canvas_data' not in st.session_state or st.session_state.current_json_idx != st.session_state.get('previous_json_idx', -1):
             st.session_state.canvas_data = None  # Reset stored canvas data
@@ -141,7 +152,7 @@ with col1:
             stroke_color="#FF0000",
             background_image=Image.open(image_path),
             update_streamlit=True,
-            height=500,
+            height=900,
             width=700,
             drawing_mode="rect",
             key=f"canvas_{st.session_state.current_json_idx}",
@@ -158,7 +169,7 @@ with col1:
                 img_height = 500
                 for obj in objects:
                     left, top, width, height = obj["left"], obj["top"], obj["width"], obj["height"]
-                    
+
                     scaled_x = int((left / img_width) * json_width)
                     scaled_y = int((top / img_height) * json_height)
                     scaled_w = int((width / img_width) * json_width)
@@ -167,10 +178,8 @@ with col1:
                     # Format the URL based on the extracted image_id
                     image_id = first_entry.get("image_id", "unknown_image_id")
                     url = f"https://cdn.mathpix.com/cropped/{image_id}.jpg?height={scaled_h}&width={scaled_w}&top_left_y={scaled_y}&top_left_x={scaled_x}"
-                    
+
                     st.write(f"Bounding Box URL: {url}")
-
-
 
 # ----------------------------------------------
 # SIDEBAR: Manage Bounding Boxes
