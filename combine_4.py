@@ -1,6 +1,6 @@
-#this add moves up/down /delete and add text for url coords place,raw image with bounding and without boudning is hsown
+#here the pdf images with bounding boxes with column 1 and in column 2 has rendered input from json-mmd format and the sidebar is present where i can make any changes in the boxes of the annotations and the changes
+#will reflect in the mmd-json also the sliders work also when screenshot has to be taken the image without bounding boxes are displayed
 
-#here i have put moveup and move down for boxes
 import streamlit as st
 import os
 import json
@@ -42,15 +42,38 @@ with st.sidebar:
         elif not image_dir_path.exists() or not image_dir_path.is_dir():
             st.error("🚨 Image Directory does not exist or is not a directory.")
         else:
+            # Get list of available JSON files
             json_files = sorted([f for f in os.listdir(json_dir) if f.endswith(".json")])
-            
+
             if not json_files:
                 st.error("⚠️ No JSON files found in the specified directory.")
             else:
+                # Store JSON files in session state
                 if 'json_files' not in st.session_state:
                     st.session_state.json_files = json_files
                     st.session_state.current_json_idx = 0
-                
+
+                # Navigation Controls
+                st.subheader("📑 Navigation Controls")
+                col_nav_prev, col_nav_next = st.columns(2)
+
+                with col_nav_prev:
+                    if st.button("⏮️ Previous"):
+                        if st.session_state.current_json_idx > 0:
+                            st.session_state.current_json_idx -= 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the first file.")
+
+                with col_nav_next:
+                    if st.button("⏭️ Next"):
+                        if st.session_state.current_json_idx < len(st.session_state.json_files) - 1:
+                            st.session_state.current_json_idx += 1
+                            st.experimental_rerun()
+                        else:
+                            st.warning("🚨 This is the last file.")
+
+                # Dropdown to select a specific JSON file
                 selected_json = st.selectbox(
                     "📜 Select JSON File",
                     options=st.session_state.json_files,
@@ -79,7 +102,6 @@ matching_image = next((img for img in image_files if extract_page_number(img) ==
 
 # Create two-column layout
 col1, col2 = st.columns(2)
-
 # ----------------------------------------------
 # SIDEBAR: Additional Controls
 # ----------------------------------------------
@@ -88,13 +110,8 @@ with st.sidebar:
     
     # Checkbox to toggle bounding boxes
     show_raw_image = st.checkbox("Show Image Without Bounding Boxes", value=False)
-
-
 # ----------------------------------------------
 # COLUMN 1: Image with Bounding Boxes
-# ----------------------------------------------
-# ----------------------------------------------
-# COLUMN 1: Image with or without Bounding Boxes
 # ----------------------------------------------
 with col1:
     st.subheader("🖼 Image with Bounding Boxes")
@@ -107,7 +124,10 @@ with col1:
             with open(json_path, "r") as f:
                 json_data = json.load(f)
 
-            first_entry = json_data if isinstance(json_data, dict) else json_data[0]
+            if isinstance(json_data, dict):
+                json_data = [json_data]
+
+            first_entry = json_data[0] if json_data else None
 
             if first_entry and 'lines' in first_entry:
                 image = cv2.imread(image_path)
@@ -116,7 +136,6 @@ with col1:
                 json_width = first_entry.get("page_width", image.shape[1])
                 json_height = first_entry.get("page_height", image.shape[0])
 
-                # ✅ Function to Draw Bounding Boxes
                 def draw_boxes(image, annotations):
                     img_copy = image.copy()
                     scale_x = img_copy.shape[1] / json_width
@@ -135,51 +154,38 @@ with col1:
 
                     return img_copy
 
-                # ✅ Show Image with or without Bounding Boxes
                 if show_raw_image:
-                    st.image(Image.fromarray(image), caption=f"📌 Raw {matching_image}", use_column_width=True)
+                         st.image(Image.fromarray(image), caption=f"📌 Raw {matching_image}", use_column_width=True)
                 else:
-                    image = draw_boxes(image, first_entry['lines'])
-                    st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
-
-    else:
-        st.error("⚠️ No matching image found for the selected JSON file.")
+                         image = draw_boxes(image, first_entry['lines'])
+                         st.image(Image.fromarray(image), caption=f"📌 Annotated {matching_image}", use_column_width=True)
 
 # ----------------------------------------------
 # SIDEBAR: Manage Bounding Boxes
 # ----------------------------------------------
 with st.sidebar:
     st.subheader("📦 Manage Annotations")
-    
-    if first_entry and "lines" in first_entry and isinstance(first_entry["lines"], list):
+    if first_entry and "lines" in first_entry:
         for idx, annotation in enumerate(first_entry["lines"]):
             with st.expander(f"Box {idx}", expanded=False):
                 points = np.array(annotation["cnt"], dtype=np.int32)
                 x, y, w, h = cv2.boundingRect(points)
-
-                new_x = st.number_input(f"X {idx}", value=x, key=f"x_{idx}")
-                new_y = st.number_input(f"Y {idx}", value=y, key=f"y_{idx}")
-                new_w = st.number_input(f"Width {idx}", value=w, key=f"w_{idx}")
-                new_h = st.number_input(f"Height {idx}", value=h, key=f"h_{idx}")
-                new_text = st.text_area(f"Text {idx}", value=annotation["text"], key=f"text_{idx}")
-
-                # Ensure checkbox states persist correctly
-                coord_key = f"require_coords_{idx}"
-                require_coords = st.checkbox(f"Require Coordinates for Box {idx}", key=coord_key)
-
-                # Ensure text input field below checkbox
-                text_key = f"extra_info_{idx}"
-                user_input = st.text_area(f"Additional Info for Box {idx}", key=text_key)
                 
-                # Store checkbox and text states
-                if "require_coords" not in st.session_state:
-                    st.session_state.require_coords = {}
-                if "extra_info" not in st.session_state:
-                    st.session_state.extra_info = {}
-
-                st.session_state.require_coords[idx] = require_coords
-                st.session_state.extra_info[idx] = user_input
-
+                # Sliders for adjusting bounding box properties
+                new_x = st.slider(f"X Pos {idx}", 0, json_width, x, key=f"x_{idx}")
+                new_y = st.slider(f"Y Pos {idx}", 0, json_height, y, key=f"y_{idx}")
+                new_w = st.slider(f"Width {idx}", 1, json_width - new_x, w, key=f"w_{idx}")
+                new_h = st.slider(f"Height {idx}", 1, json_height - new_y, h, key=f"h_{idx}")
+                new_text = st.text_area(f"Text {idx}", value=annotation["text"], key=f"text_{idx}")
+                
+                # Update bounding box when sliders change
+                if (new_x != x or new_y != y or new_w != w or new_h != h or new_text != annotation["text"]):
+                    annotation["cnt"] = [[new_x, new_y], [new_x, new_y + new_h], [new_x + new_w, new_y + new_h], [new_x + new_w, new_y]]
+                    annotation["text"] = new_text
+                    with open(json_path, "w", encoding="utf-8") as f:
+                        json.dump(json_data, f, indent=4)
+                    st.experimental_rerun()
+                
                 col_up, col_down, col_delete = st.columns(3)
                 
                 with col_up:
@@ -195,12 +201,12 @@ with st.sidebar:
                         with open(json_path, "w", encoding="utf-8") as f:
                             json.dump(json_data, f, indent=4)
                         st.experimental_rerun()
-
+                
                 with col_delete:
                     if st.button(f"🗑️ Delete {idx}", key=f"delete_{idx}"):
-                        del first_entry["lines"][idx]  # Remove the annotation
+                        del first_entry["lines"][idx]
                         with open(json_path, "w", encoding="utf-8") as f:
-                            json.dump(json_data, f, indent=4)  # Save updated JSON
+                            json.dump(json_data, f, indent=4)
                         st.experimental_rerun()
 
 # ----------------------------------------------
