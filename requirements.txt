@@ -1,7 +1,7 @@
 Mathpix API key -OCR processing for images
 
 mpx (Markdown to HTML Converter)
--pip install mpx
+-npm install -g @mathpix/mpx-cli
 https://mathpix.com/mpx-cli
 https://github.com/Mathpix/mpx-cli
 
