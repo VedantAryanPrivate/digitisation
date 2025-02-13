@@ -42,23 +42,36 @@ Easily adjust bounding box dimensions (width, height, top-left X/Y) and automati
 ⏱️ Real-time Updates:
 All changes are reflected live in both the JSON and MMD files, ensuring everything stays synchronized.
 
-📥 How to Use                                                                                                              
+📥 How to Use          
+
 Clone the repository
+
 git clone https://github.com/SimNaik/digitisation.git
+
 Install dependencies
+
 Run:
+
 pip install -r requirements.txt
+
 Launch the Streamlit app
+
 Run:
+
 streamlit run streamlit_interface.py
 
- 🚀 Why Use This Interface?                                                                                                                            
+ 🚀 Why Use This Interface?    
+ 
 This interface automates and simplifies the process of:
 
 Reviewing and correcting OCR data,
+
 Adjusting bounding boxes,
+
 Reordering text seamlessly,
+
 Sending images and text back to Mathpix for reprocessing.
+
 All these features work in real time, boosting both accuracy and efficiency in dataset correction!
 
 ✨ Feel free to contribute or open issues if you have feedback or improvements! ✨
