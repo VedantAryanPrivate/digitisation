@@ -42,7 +42,7 @@ Easily adjust bounding box dimensions (width, height, top-left X/Y) and automati
 ⏱️ Real-time Updates:
 All changes are reflected live in both the JSON and MMD files, ensuring everything stays synchronized.
 
-                                                                                                                                 📥 How to Use
+📥 How to Use                                                                                                              
 Clone the repository
 git clone https://github.com/SimNaik/digitisation.git
 Install dependencies
@@ -52,7 +52,7 @@ Launch the Streamlit app
 Run:
 streamlit run streamlit_interface.py
 
-                                                                                                                               🚀 Why Use This Interface?
+ 🚀 Why Use This Interface?                                                                                                                            
 This interface automates and simplifies the process of:
 
 Reviewing and correcting OCR data,
