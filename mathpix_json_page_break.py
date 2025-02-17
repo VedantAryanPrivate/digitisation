@@ -1,5 +1,5 @@
 #breaking pdf pages into images
-import fitz
+import pymupdf
 import os
 
 # Paths
@@ -10,7 +10,7 @@ output_dir = "/Users/simrannaik/Desktop/automated/images"
 os.makedirs(output_dir, exist_ok=True)
 
 # Open the PDF file
-doc = fitz.open(pdf_path)
+doc = pymupdf.open(pdf_path)
 
 # Loop through each page and save it as a PNG image
 for page_num in range(len(doc)):
