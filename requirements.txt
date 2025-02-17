@@ -9,7 +9,8 @@ Image processing (bounding boxes)
 -pip install opencv-python
 
 Web-based application UI
--pip install streamlit
+-pip install streamlit 
+[please insatll  streamlit = 1.32.0]
 
 Drawing tool for bounding boxes
 -pip install streamlit streamlit-drawable-canvas
