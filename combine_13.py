@@ -141,6 +141,29 @@ def process_pdf(uploaded_pdf):
     st.session_state.processed_json_dir = json_output_dir
     st.session_state.processed_image_dir = images_output_dir
 
+# Function to send image to Mathpix API
+def send_to_mathpix(image_path):
+    url = "https://api.mathpix.com/v3/text"
+    headers = {"app_id": MATHPIX_APP_ID, "app_key": MATHPIX_APP_KEY}
+    files = {"file": open(image_path, "rb")}
+    options = {"rm_spaces": True}
+    response = requests.post(url, headers=headers, files=files, data={"options_json": json.dumps(options)})
+    if response.status_code == 200:
+        return response.json().get("text", "No text extracted.")
+    else:
+        return f"Error: {response.status_code} - {response.text}"
+    
+# Function to get the most recent image from Downloads
+def get_latest_downloaded_image():
+    downloads_folder = os.path.expanduser("~/Downloads")
+    image_files = sorted(glob.glob(os.path.join(downloads_folder, "*.[pj][np]g")),
+                         key=os.path.getctime, reverse=True)
+    if image_files:
+        return image_files[0]  # Return the most recent image
+    else:
+        return None  # No image found
+
+
 # ================= Sidebar Controls =================
 
 st.sidebar.header("📁 PDF Processing")
