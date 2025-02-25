@@ -237,6 +237,15 @@ if json_dir:
     sorted_json_files = natsorted(raw_json_files)
     st.session_state.json_files = sorted_json_files
     st.sidebar.subheader("📑 Navigation Controls")
+    # Add a selectbox for JSON file selection.
+    selected_json = st.selectbox(
+        "📜 Select JSON File", 
+        options=st.session_state.json_files, 
+        index=st.session_state.current_json_idx
+    )
+    # Update the current JSON index to match the selection.
+    st.session_state.current_json_idx = st.session_state.json_files.index(selected_json)
+
     col_nav_prev, col_nav_next = st.sidebar.columns(2)
     with col_nav_prev:
         if st.button("⏮️ Previous") and st.session_state.current_json_idx > 0:
@@ -256,6 +265,7 @@ if json_dir:
     selected_json = st.session_state.json_files[st.session_state.current_json_idx] if st.session_state.json_files else None
 else:
     selected_json = None
+    
 
 # --------------- Prepare Current Page Data ---------------
 if selected_json:
