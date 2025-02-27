@@ -9,7 +9,7 @@
 -pip install opencv-python
 
 #Web-based application UI
--pip install streamlit == 1.32.0
+-pip install streamlit==1.32.0
 
 #Drawing tool for bounding boxes
 -pip install streamlit streamlit-drawable-canvas
