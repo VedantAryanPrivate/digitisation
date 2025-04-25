@@ -1083,4 +1083,3 @@ class LexicalConverter:
 # Initialize converter in session state
 if 'lexical_converter' not in st.session_state:
     st.session_state.lexical_converter = LexicalConverter()
-# Updated version
