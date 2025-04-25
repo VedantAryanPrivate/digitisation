@@ -1,0 +1,24 @@
+#Mathpix API key -OCR processing for images
+
+#mpx (Markdown to HTML Converter)
+- sudo npm install -g @mathpix/mpx-cli
+#https://mathpix.com/mpx-cli
+#https://github.com/Mathpix/mpx-cli
+
+#Image processing (bounding boxes)
+-pip install opencv-python
+
+#Web-based application UI
+-pip install streamlit==1.32.0
+
+#Drawing tool for bounding boxes
+-pip install streamlit streamlit-drawable-canvas
+
+#Image handling and format conversion
+-pip install pillow
+
+#to install fitz operations
+-pip install PyMuPDF
+
+#to install sorting operations
+-pip install natsort
